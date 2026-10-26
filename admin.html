@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Panel docente · Gen-Eco en Ruta</title><link rel="stylesheet" href="style.css">
+<style>table{width:100%;border-collapse:collapse;font-size:.85rem}td,th{border:1px solid var(--ln);padding:4px;text-align:left}.tw{overflow-x:auto}</style></head>
+<body><div class="bg"></div><main>
+<section class="card" id="lg"><h1>Panel docente</h1>
+<p class="small">⚠️ Protección básica: la clave está en el código fuente y cualquiera con conocimientos técnicos puede descubrirla. No es seguridad profesional; no guardes aquí información sensible (por eso el juego solo usa códigos anónimos).</p>
+<label for="pw">Clave:</label> <input id="pw" type="password" style="text-transform:none"> <button onclick="ent()">Entrar</button> <a href="index.html" style="color:#9bbfc0">Volver al juego</a></section>
+<section class="card" id="pn" hidden><h2>Registros guardados en este navegador</h2>
+<p>⚠️ Estos registros pertenecen a <b>este navegador y este dispositivo</b> y se pierden si se borran los datos del navegador. Si el envío a Google Forms está activo, las respuestas también llegan a la hoja del proyecto. <b>Aun así, exporta un respaldo después de cada sesión.</b></p>
+<p id="st"></p><p id="nb" class="small"></p><button class="sec" onclick="geFlush()">☁ Reintentar envío a Google Forms</button><button onclick="csv()">⬇ Exportar CSV (juego + EMEA)</button><button onclick="emeaCsv()">⬇ Exportar EMEA (puntajes)</button><button onclick="jsn()">⬇ Respaldo JSON</button>
+<button class="sec" onclick="document.getElementById('fi').click()">⬆ Restaurar JSON</button><input id="fi" type="file" accept=".json" hidden onchange="imp(this)">
+<button class="sec" onclick="del()" style="border-color:#fb7185">🗑 Eliminar datos locales</button>
+<div class="tw"><table><thead><tr><th>Código</th><th>Fase</th><th>Inicio</th><th>Fin</th><th>Puntos</th><th>Insignias</th><th>Misiones (estado)</th><th>Alerta</th></tr></thead><tbody id="tb"></tbody></table></div></section></main>
+<script src="nube.js"></script>
+<script>
+const PW='Kraken147',KR='ge_records';
+const DIM=[1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5],INV=[3,8,12,16];
+const L=()=>{try{return JSON.parse(localStorage.getItem(KR))||{}}catch(e){return{}}};
+const dl=(n,t,m)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:m}));a.download=n;a.click()};
+function ent(){if(pw.value===PW){lg.hidden=true;pn.hidden=false;draw()}else alert('Clave incorrecta')}
+const rec=(x,n)=>INV.includes(n)?6-x:x;
+function inc(r){const p=[];if(r.fase){if(!r.emea)p.push('cuestionario '+r.fase+' sin enviar');return p}
+if(!r.fin)p.push('sin finalizar');Object.entries(r.misiones).forEach(([k,m])=>{if(m.estado==='abandonada'&&!m.ya)p.push('M'+k+' abandonada');if(m.estado==='completada'&&m.quiz.length<3)p.push('M'+k+' sin 3 preguntas')});return p}
+function nube(){nb.textContent=geListo()?'Envío a Google Forms: activo. Respuestas pendientes de enviar desde este equipo: '+gePend()+'.':'Envío a Google Forms: no configurado (los datos quedan solo en este equipo).'}
+addEventListener('ge-cola',()=>{if(!pn.hidden)nube()});
+function draw(){nube();const a=Object.values(L()),n=a.filter(r=>inc(r).length).length;st.textContent=a.length+' registro(s); '+n+' con posible estado incompleto.';
+tb.innerHTML=a.map(r=>`<tr><td>${r.code}</td><td>${r.fase||'juego'}</td><td>${r.inicio}</td><td>${r.fin||'—'}</td><td>${r.fase?'—':r.puntos}</td><td>${r.fase?(r.emea?'EMEA '+r.fase+' enviada':'—'):Object.entries(r.misiones).map(([k,m])=>'M'+k+': '+(m.ya&&m.estado!=='completada'?'completada (repetida)':m.estado)+(m.intentos>1?' ('+m.intentos+' intentos)':'')).join('<br>')}</td><td>${inc(r).join('; ')||'ok'}</td></tr>`).join('')}
+const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+const stamp=()=>new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
+/* CSV largo: una fila por respuesta. Incluye todos los intentos de cada misión y las respuestas de la EMEA. */
+function csv(){const rows=[['codigo','fase','avatar','inicio','fin','mision','intento','estado_intento','tiempo_s','tipo','item','respuesta','resultado','puntos']];
+Object.values(L()).forEach(r=>{const b0=[r.code,r.fase||'juego',r.avatar,r.inicio,r.fin||''];
+if(!r.fase)Object.entries(r.misiones).forEach(([k,m])=>{const ints=[...(m.hist||[]),{intento:m.intentos,estado:m.estado,tiempo_s:m.tiempo_s,puntos:m.puntos,reto:m.reto,quiz:m.quiz}];
+ints.forEach(t=>{const b=[...b0,k,t.intento,t.estado,t.tiempo_s];if(!t.reto.length&&!t.quiz.length)rows.push([...b,'resumen','','',t.estado,t.puntos]);
+t.reto.forEach(x=>rows.push([...b,'reto',x.item,x.respuesta,x.resultado,x.puntos]));t.quiz.forEach(x=>rows.push([...b,'comprension',x.item,x.respuesta,x.resultado,x.puntos]))})});
+if(r.emea){Object.entries(r.emea.resp).forEach(([n,v])=>rows.push([...b0,'','','','','emea','E'+n,v,rec(v,+n),'']));(r.emea.abiertas||[]).forEach((t,i)=>rows.push([...b0,'','','','','emea_abierta','P'+(i+1),t,'','']))}});
+dl('geneco_registros_'+stamp()+'.csv','﻿'+rows.map(r=>r.map(q).join(',')).join('\n'),'text/csv')}
+/* CSV ancho de la EMEA: puntajes por dimensión (1 a 5, con ítems inversos recodificados) listos para comparar pretest y postest por código. */
+function emeaCsv(){const rows=[['codigo','fase','fecha','D1_interes','D2_valor','D3_competencia','D4_autonomia','D5_disposicion','total',...Array.from({length:20},(_,i)=>'E'+(i+1)+(INV.includes(i+1)?'_inv_recodificado':'_recodificado'))]];
+Object.values(L()).filter(r=>r.emea).forEach(r=>{const v=Array.from({length:20},(_,i)=>rec(r.emea.resp[i+1],i+1));const d=[1,2,3,4,5].map(k=>{const x=v.filter((_,i)=>DIM[i]===k);return (x.reduce((a,b)=>a+b,0)/x.length).toFixed(2)});
+rows.push([r.code,r.emea.fase,r.emea.ts,...d,(v.reduce((a,b)=>a+b,0)/20).toFixed(2),...v])});
+dl('geneco_emea_puntajes_'+stamp()+'.csv','﻿'+rows.map(r=>r.map(q).join(',')).join('\n'),'text/csv')}
+function jsn(){dl('geneco_respaldo_'+stamp()+'.json',JSON.stringify(L(),null,1),'application/json')}
+function imp(f){const r=new FileReader();r.onload=()=>{try{const n=JSON.parse(r.result),o=L();localStorage.setItem(KR,JSON.stringify({...o,...n}));draw();alert('Respaldo restaurado (se combinó sin duplicar por id).')}catch(e){alert('Archivo no válido')}};r.readAsText(f.files[0])}
+function del(){if(prompt('Esto borra TODOS los registros locales. Exporta antes. Escribe ELIMINAR para confirmar:')==='ELIMINAR'){localStorage.removeItem(KR);localStorage.removeItem('ge_session');draw()}}
+</script></body></html>

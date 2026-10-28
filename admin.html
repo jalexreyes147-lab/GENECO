@@ -13,7 +13,7 @@
 <div class="tw"><table><thead><tr><th>Código</th><th>Fase</th><th>Inicio</th><th>Fin</th><th>Puntos</th><th>Insignias</th><th>Misiones (estado)</th><th>Alerta</th></tr></thead><tbody id="tb"></tbody></table></div></section></main>
 <script src="nube.js"></script>
 <script>
-const PW='Kraken147',KR='ge_records';
+const PW='YULULUKA22',KR='ge_records';
 const DIM=[1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5],INV=[3,8,12,16];
 const L=()=>{try{return JSON.parse(localStorage.getItem(KR))||{}}catch(e){return{}}};
 const dl=(n,t,m)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:m}));a.download=n;a.click()};
@@ -30,6 +30,7 @@ const stamp=()=>new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
 /* CSV largo: una fila por respuesta. Incluye todos los intentos de cada misión y las respuestas de la EMEA. */
 function csv(){const rows=[['codigo','fase','avatar','inicio','fin','mision','intento','estado_intento','tiempo_s','tipo','item','respuesta','resultado','puntos']];
 Object.values(L()).forEach(r=>{const b0=[r.code,r.fase||'juego',r.avatar,r.inicio,r.fin||''];
+if(!r.fase){const b1=b0.slice();[['estilo',r.estilo],['ritmo',r.ritmo],['compromiso',r.compromiso]].forEach(([k,v])=>{if(v)rows.push([...b1,'perfil','','','','perfil',k,v,'','']);});Object.entries(r.decisiones||{}).forEach(([k,d])=>rows.push([...b1,'perfil','','','','decision','estacion '+k,d.e||'',['menos_sostenible','intermedia','mejor_opcion'][d.lv],d.lv===2?10:d.lv===1?5:2]));}
 if(!r.fase)Object.entries(r.misiones).forEach(([k,m])=>{const ints=[...(m.hist||[]),{intento:m.intentos,estado:m.estado,tiempo_s:m.tiempo_s,puntos:m.puntos,reto:m.reto,quiz:m.quiz}];
 ints.forEach(t=>{const b=[...b0,k,t.intento,t.estado,t.tiempo_s];if(!t.reto.length&&!t.quiz.length)rows.push([...b,'resumen','','',t.estado,t.puntos]);
 t.reto.forEach(x=>rows.push([...b,'reto',x.item,x.respuesta,x.resultado,x.puntos]));t.quiz.forEach(x=>rows.push([...b,'comprension',x.item,x.respuesta,x.resultado,x.puntos]))})});
